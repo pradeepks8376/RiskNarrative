@@ -1,16 +1,22 @@
 package com.risknarrative.service;
 
 import com.risknarrative.constant.Constants;
-import com.risknarrative.model.Company;
-import com.risknarrative.model.CompanySearchRequest;
-import com.risknarrative.model.CompanySearchResponse;
-import com.risknarrative.model.OfficerResponse;
+import com.risknarrative.entity.Addresses;
+import com.risknarrative.entity.Companies;
+import com.risknarrative.entity.Officers;
+import com.risknarrative.mapper.CommonMapper;
+import com.risknarrative.model.*;
+import com.risknarrative.repository.AddressRepository;
+import com.risknarrative.repository.CompanyRepository;
+import com.risknarrative.repository.OfficerRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.http.*;
 
@@ -23,6 +29,12 @@ public class TruProxyService {
     @Value(Constants.COMPANY_BASE_URL)
     private String companyBaseUrl;
 
+    @Autowired
+    private CompanyService companyService;
+
+    @Autowired
+    private CommonMapper mapper;
+
     Logger logger = LoggerFactory.getLogger(TruProxyService.class);
 
     private final RestTemplate restTemplate;
@@ -32,14 +44,17 @@ public class TruProxyService {
     }
 
     public CompanySearchResponse getCompanyDetails(String apiKey, String companyName, String companyNumber, boolean active) {
+
         String endpoint = companyBaseUrl + Constants.COMPANY_URI + companyNumber;
+
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.set("x-api-key", apiKey);
-        CompanySearchRequest companySearchRequest = new CompanySearchRequest();
-        companySearchRequest.setCompanyName(companyName);
-        companySearchRequest.setCompanyNumber(companyNumber);
-        companySearchRequest.setActiveOnly(active);
+        headers.set(Constants.API_KEY, apiKey);
+
+        CompanySearchRequest companySearchRequest = CompanySearchRequest.builder()
+                .companyName(companyName)
+                .companyName(companyNumber)
+                .activeOnly(active).build();
 
         HttpEntity<CompanySearchRequest> entity = new HttpEntity<>(companySearchRequest,headers);
         CompanySearchResponse searchResponse = restTemplate.exchange(endpoint, HttpMethod.GET, entity, CompanySearchResponse.class).getBody();
@@ -47,15 +62,8 @@ public class TruProxyService {
         OfficerResponse companyOfficers = getCompanyOfficers(apiKey, companyNumber);
         logger.info("**** Officers list *****: "+companyOfficers);
 
-        return CompanySearchResponse.builder().items(List.of(Company.builder()
-                .company_type(searchResponse.getItems().stream().findFirst().map(Company::getCompany_type).get())
-                .company_number(searchResponse.getItems().stream().findFirst().map(Company::getCompany_number).get())
-                .company_status(searchResponse.getItems().stream().findFirst().map(Company::getCompany_status).get())
-                .date_of_creation(searchResponse.getItems().stream().findFirst().map(Company::getDate_of_creation).get())
-                .title(searchResponse.getItems().stream().findFirst().map(Company::getTitle).get())
-                .address(searchResponse.getItems().stream().findFirst().map(Company::getAddress).get())
-                .officers(List.of(companyOfficers.getItems().stream().findFirst().get())).build()))
-                .total_results(searchResponse.getItems().size()).build();
+        companyService.saveCompanyOfficerDetails(searchResponse, companyOfficers);
+        return mapper.buildCompanyOfficersResponse(companyService.getCompanyOfficerDetails());
     }
 
     public OfficerResponse getCompanyOfficers(String apiKey, String companyNumber) {

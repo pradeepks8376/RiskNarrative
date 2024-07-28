@@ -1,5 +1,6 @@
 package com.risknarrative.model;
 
+import jakarta.persistence.Entity;
 import lombok.Builder;
 import lombok.Data;
 
