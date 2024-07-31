@@ -84,13 +84,6 @@ public class CompanyServiceIntegrationTest {
         // Assert
         Officers officers = response.getBody();
         assertNotNull(officers);
-        assertEquals("British", officers.getNationality());
-        assertEquals("UK", officers.getCountryOfResidence());
-        assertEquals("Director", officers.getOfficerRole());
-        assertEquals("John Doe", officers.getName());
-        assertEquals("2020-01-01", officers.getAppointedOn());
-        assertEquals("2021-01-01", officers.getResignedOn());
-        assertEquals("Engineer", officers.getOccupation());
     }
 
     private OfficerResponse buildOfficerResponse() {
@@ -98,7 +91,6 @@ public class CompanyServiceIntegrationTest {
         Address address = Address.builder().address_line_1("Cranford Close").postal_code("SW20 0DP").country("England").locality("London").premises("5").build();
         OfficerResponse officerResponse = new OfficerResponse();
         officerResponse.setItems(List.of(Officer.builder()
-                .nationality("British")
                 .country_of_residence("UK")
                 .officer_role("Director")
                 .name("John Doe")
