@@ -1,2 +1,0 @@
-# RiskNarrative
-RiskNarrative spring-exercise
